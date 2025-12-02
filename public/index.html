@@ -7,7 +7,7 @@
     <title>Секс рассказы 2025-2026 — читать онлайн бесплатно 18+ | sexnews.ru</title>
     <meta name="description" content="Самые горячие секс рассказы 2025-2026 года без регистрации: измена жены, групповой секс, первый анал, инцест, зоо, африканцы, куни, минет и сотни других тем. Бесплатно и анонимно!">
     <style>
-        body{margin:0;padding:0;background:#fff;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.8;font-size:18px}
+        body{margin:0;padding:0;background:#fff;color:#222;font-family:-apple url,System,sans-serif;line-height:1.8;font-size:18px}
         .wrapper{max-width:860px;margin:0 auto;padding:15px}
         h1{font-size:34px;margin:30px 0 20px;text-align:center;color:#c0392b;line-height:1.3}
         h2{font-size:26px;margin:45px 0 20px;text-align:center;color:#e74c3c}
@@ -48,33 +48,45 @@
     let allUrls = [];
     let currentIndex = 0;
 
-    // Словарь транслита → русский (самые частые слова в adult-тематике)
-    const translitMap = {
-        'seks': 'секс', 'rasskaz': 'рассказ', 'rasskazy': 'рассказы', 'porno': 'порно',
-        'anal': 'анал', 'analnogo': 'анального', 'anala': 'анала', 'analom': 'аналом',
-        'zhena': 'жена', 'zhenoy': 'женой', 'zhenu': 'жену', 'zhena': 'жена',
-        'gruppa': 'группа', 'gruppovoy': 'групповой', 'gruppovoy': 'групповой',
-        'pervy': 'первый', 'pervogo': 'первого', 'pervyy': 'первый',
-        'incest': 'инцест', 'incesta': 'инцеста',
-        'zoo': 'зоо', 'best': 'бест', 'zoofil': 'зоофил',
-        'kunilingus': 'кунилингус', 'kuni': 'куни',
-        'minet': 'минет', 'mineta': 'минета',
-        'lesbi': 'лесби', 'lesbiyan': 'лесбиянки',
-        'gey': 'гей', 'gay': 'гей',
-        'afrikancy': 'африканцы', 'negr': 'негр', 'negrov': 'негров',
-        'svngeri': 'свингеры', 'svng': 'свинг',
-        'bdsm': 'БДСМ', 'bdsm': 'БДСМ',
-        'sestra': 'сестра', 'sestru': 'сестру',
-        'techa': 'тёща', 'teshcha': 'тёща',
-        'vagina': 'вагина', 'pizda': 'пизда', 'pisya': 'пися',
-        'chlen': 'член', 'hui': 'хуй', 'huy': 'хуй',
-        'orgazm': 'оргазм', 'konchil': 'кончил', 'konchaet': 'кончает'
+    // Полный словарь транслит → русский (расширен до максимума)
+    const dict = {
+        'seks':'секс','rasskaz':'рассказ','rasskazy':'рассказы','porno':'порно','eroticheskie':'эротические',
+        'anal':'анал','anala':'анала','analom':'аналом','analnogo':'анального','anale':'анале','analnyy':'анальный',
+        'zhena':'жена','zhenoy':'женой','zhenu':'жену','zhena':'жена','zhen':'жен',
+        'gruppa':'группа','gruppovoy':'групповой','grupovoy':'групповой','grupovukha':'групповуха',
+        'pervyy':'первый','pervy':'первый','pervogo':'первого','pervaya':'первая',
+        'incest':'инцест','intsest':'инцест',
+        'zoo':'зоо','best':'бест','zoofil':'зоофил','zoofilia':'зоофилия',
+        'kuni':'куни','kunilingus':'кунилингус','kuni':'куни',
+        'minet':'минет','mineta':'минета','minetchica':'минетчица',
+        'lesbi':'лесби','lesbiyan':'лесбиянки','lesbiyanki':'лесбиянки',
+        'gey':'гей','gay':'гей',
+        'afrikancy':'африканцы','negr':'негр','negrov':'негров','bbc':'негры',
+        'svng':'свинг','svngeri':'свингеры','svngers':'свингеры',
+        'bdsm':'БДСМ','domina':'доминирование','podchinenie':'подчинение',
+        'sestra':'сестра','sestru':'сестру','sestroy':'сестрой','sestry':'сестры',
+        'mama':'мама','mamka':'мамка','mamochka':'мамочка','mat':'мать',
+        'techa':'тёща','tescha':'тёща','teshcha':'тёща',
+        'detskiy':'детский','malchik':'мальчик','devochka':'девочка','deti':'дети','detyam':'детям',
+        'zrelka':'зрелка','zrelye':'зрелые','zrelaya':'зрелая',
+        'druz':'друз','druziya':'друзья','sdruz':'с друзьями','druzey':'друзей',
+        'rabote':'работе','na rabote':'на работе','ofise':'офисе','ofisnyy':'офисный',
+        'plyazhe':'пляже','na plyazhe':'на пляже','plyazhnyy':'пляжный',
+        'saune':'сауне','v saune':'в сауне','bane':'бане','v bane':'в бане',
+        'vlagalishche':'влагалище','pizda':'пизда','pizdy':'пизды','pisyu':'писю',
+        'chlen':'член','hui':'хуй','huy':'хуй','dildo':'дилдо','vibrator':'вибратор',
+        'orgazm':'оргазм','konchil':'кончил','konchaet':'кончает','sperma':'сперма',
+        'izmen':'измен','izmena':'измена','izmenil':'изменил','rogonosec':'рогоносец',
+        'troye':'втроём','troe':'втроём','vtroem':'втроём',
+        'svidanie':'свидание','znakomstvo':'знакомство','seks-vtroem':'секс втроём'
     };
 
-    function translitToRussian(str) {
-        return str.toLowerCase()
-            .split(/[_\-\s]+/)
-            .map(word => translitMap[word] || word)
+    // Универсальная функция транслит → русский
+    function toRussian(text) {
+        return text.toLowerCase()
+            .replace(/[^a-zа-яё0-9\s-]/gi, ' ')
+            .split(/[\s_-]+/)
+            .map(word => dict[word] || word)
             .join(' ')
             .replace(/\b\w/g, l => l.toUpperCase());
     }
@@ -88,7 +100,7 @@
                     const url = loc.textContent.trim();
                     if (!url.endsWith('.html')) return null;
                     const filename = url.split('/').pop().replace('.html', '');
-                    const titleRu = translitToRussian(filename);
+                    const titleRu = toRussian(filename);
                     return { url: url.split('/').pop(), title: titleRu + ' — секс рассказ 18+' };
                 })
                 .filter(Boolean);
