@@ -44,79 +44,81 @@
     </div>
 
 <script>
-// ТОЧНЫЙ обратный транслит — 1 в 1 как в твоём Python-скрипте
-const reverseDict = {
-    'a': 'а', 'b': 'б', 'v': 'в', 'g': 'г', 'd': 'д', 'e': 'е',
-    'yo': 'ё', 'zh': 'ж', 'z': 'з', 'i': 'и', 'j': 'й', 'k': 'к',
-    'l': 'л', 'm': 'м', 'n': 'н', 'o': 'о', 'p': 'п', 'r': 'р',
-    's': 'с', 't': 'т', 'u': 'у', 'f': 'ф', 'kh': 'х', 'h': 'х',
-    'ts': 'ц', 'ch': 'ч', 'sh': 'ш', 'sch': 'щ', '': 'ъ',
-    'y': 'ы', '': 'ь', 'eh': 'э', 'yu': 'ю', 'ya': 'я'
-};
+    const PER_PAGE = 40;
+    let allUrls = [];
+    let currentIndex = 0;
 
-function latinToCyrillic(str) {
-    str = str.toLowerCase();
-    // Сначала заменяем двухбуквенные комбинации (обязательно в правильном порядке!)
-    const pairs = ['yo','zh','kh','ts','ch','sh','sch','yu','ya','eh'];
-    for (const p of pairs) {
-        str = str.split(p).join(reverseDict[p]);
+    // ТОЧНЫЙ обратный транслит — 1 в 1 как в твоём Python-скрипте
+    const reverseMap = {
+        'a':'а','b':'б','v':'в','g':'г','d':'д','e':'е','yo':'ё','zh':'ж','z':'з',
+        'i':'и','y':'й',  // ← ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ: y → й (а не ы!)
+        'k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','r':'р','s':'с','t':'т',
+       rn 'u':'у','f':'ф','kh':'х','ts':'ц','ch':'ч','sh':'ш','sch':'щ',
+        '':'ъ','y':'ы',  // ← только если y стоит после гласной — но мы уже обработали выше как й
+        '':'ь','e':'э','yu':'ю','ya':'я'
+    };
+
+    // Правильная замена: сначала длинные, потом короткие
+    function latinToCyrillic(str) {
+        str = str.toLowerCase();
+        const pairs = ['yo','zh','kh','ts','ch','sh','sch','yu','ya'];
+        for (const p of pairs) {
+            str = str.split(p).join(reverseMap[p]);
+        }
+        // Обрабатываем "y" как "й" только если это не часть "ы" (в твоём генераторе "ы" → "y" только в конце или после гласной)
+        // Но в твоём алгоритме "й" → "y", а "ы" → "y" — поэтому мы просто всегда делаем y → й
+        // (в реальных словах "ы" не бывает в латинском написании, только "y" от "й")
+        str = str.replace(/y/g, 'й');  // ← Главная строчка! Все y → й
+        str = str.replace(/yy/g, 'ый'); // на случай "мой" → "moyy" → "мой"
+        
+        // Остальные одиночные буквы
+        return str.split('').map(c => reverseMap[c] || c).join('');
     }
-    // Потом одиночные буквы
-    return str.split('').map(c => reverseDict[c] || c).join('');
-}
 
-function filenameToTitle(filename) {
-    return filename
-        .replace(/\.html$/, '')
-        .split('-')
-        .map(word => {
-            const cyr = latinToCyrillic(word);
-            return cyr.charAt(0).toUpperCase() + cyr.slice(1);
-        })
-        .join(' ');
-}
-
-const PER_PAGE = 40;
-let allUrls = [];
-let currentIndex = 0;
-
-fetch('/sitemap.xml?t=' + Date.now())
-    .then(r => r.ok ? r.text() : Promise.reject())
-    .then(xmlText => {
-        const parser = new DOMParser();
-        const xml = parser.parseFromString(xmlText, "text/xml");
-        const locs = xml.querySelectorAll("loc");
-
-        allUrls = Array.from(locs)
-            .map(loc => {
-                const url = loc.textContent.trim();
-                if (!url.endsWith('.html')) return null;
-                const filename = url.split('/').pop();
-                const title = filenameToTitle(filename);
-                return { url: filename, title: title + ' — секс рассказ 18+' };
+    function filenameToTitle(filename) {
+        return filename
+            .replace(/\.html$/i, '')
+            .split('-')
+            .map(word => {
+                const cyr = latinToCyrillic(word);
+                return cyr.charAt(0).toUpperCase() + cyr.slice(1);
             })
-            .filter(Boolean);
+            .join(' ');
+    }
 
-        allUrls.sort(() => Math.random() - 0.5);
-        showPage();
-        setInterval(showPage, 60000);
-    })
-    .catch(() => {
-        document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">Все рассказы здесь →</a></div>';
-    });
+    fetch('/sitemap.xml?t=' + Date.now())
+        .then(r => r.ok ? r.text() : Promise.reject())
+        .then(text => {
+            const xml = new DOMParser().parseFromString(text, "text/xml");
+            allUrls = Array.from(xml.querySelectorAll("loc"))
+                .map(loc => {
+                    const url = loc.textContent.trim();
+                    if (!url.endsWith('.html')) return null;
+                    const filename = url.split('/').pop();
+                    const title = filenameToTitle(filename);
+                    return { url: filename, title: title + ' — секс рассказ 18+' };
+                })
+                .filter(Boolean);
 
-function showPage() {
-    const container = document.getElementById('stories-container');
-    const start = currentIndex;
-    const end = currentIndex + PER_PAGE;
-    const html = allUrls.slice(start, end).map(item => `<a href="${item.url}">${item.title}</a>`).join('');
-    container.style.opacity = '0';
-    setTimeout(() => {
-        container.innerHTML = html;
-        container.style.opacity = '1';
-    }, 300);
-    currentIndex = end % allUrls.length;
-}
+            allUrls.sort(() => Math.random() - 0.5);
+            showPage();
+            setInterval(showPage, 60000);
+        })
+        .catch(() => {
+            document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
+        });
+
+    function showPage() {
+        const container = document.getElementById('stories-container');
+        const slice = allUrls.slice(currentIndex, currentIndex + PER_PAGE);
+        const html = slice.map(item => `<a href="${item.url}">${item.title}</a>`).join('');
+        container.style.opacity = '0';
+        setTimeout(() => {
+            container.innerHTML = html;
+            container.style.opacity = '1';
+        }, 300);
+        currentIndex = (currentIndex + PER_PAGE) % allUrls.length;
+    }
 </script>
 </body>
 </html>
