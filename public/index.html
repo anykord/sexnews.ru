@@ -48,45 +48,42 @@
     let allUrls = [];
     let currentIndex = 0;
 
-    // ТОЧНЫЙ обратный транслит по твоему алгоритму (кириллица ← латиница)
-    const reverseTranslitMap = {
+    // ТОЧНЫЙ обратный транслит по твоему алгоритму
+    const reverseMap = {
         'a':'а','b':'б','v':'в','g':'г','d':'д','e':'е','yo':'ё','zh':'ж','z':'з','i':'и','y':'й','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','r':'р','s':'с','t':'т','u':'у','f':'ф','kh':'х','ts':'ц','ch':'ч','sh':'ш','sch':'щ','':'ъ','y':'ы','':'ь','e':'э','yu':'ю','ya':'я'
     };
 
     function latinToCyrillic(str) {
         str = str.toLowerCase();
-        // Сначала длинные комбинации (чтобы yo, zh и т.д. не разбивались)
-        const longFirst = ['yo','zh','kh','ts','ch','sh','sch','yu','ya'];
-        for (const lat of longFirst) {
-            str = str.split(lat).join(reverseTranslitMap[lat]);
+        // Сначала заменяем самые длинные комбинации
+        const ordered = ['sch','sh','ch','kh','yo','zh','ts','yu','ya'];
+        for (const key of ordered) {
+            str = str.split(key).join(reverseMap[key]);
         }
         // Потом одиночные буквы
-        return str.split('').map(c => reverseTranslitMap[c] || c).join('');
+        return str.split('').map(c => reverseMap[c] || c).join('');
     }
 
     function filenameToTitle(filename) {
-        // Убираем .html и разбиваем по дефисам
-        const words = filename.replace('.html', '').split('-');
-        // Каждое слово → кириллица
-        const cyrillicWords = words.map(word => {
-            const cyr = latinToCyrillic(word);
-            // Делаем первую букву заглавной
-            return cyr.charAt(0).toUpperCase() + cyr.slice(1);
-        });
-        return cyrillicWords.join(' ');
+        return filename
+            .replace('.html', '')
+            .split('-')
+            .map(word => latinToCyrillic(word))
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     fetch('/sitemap.xml?t=' + Date.now())
-        .then(r => r.text())
+        .then(r => r.ok ? r.text() : Promise.reject())
         .then(str => new DOMParser().parseFromString(str, "text/xml"))
         .then(data => {
             allUrls = Array.from(data.querySelectorAll("url loc"))
                 .map(loc => {
-                    const fullUrl = loc.textContent.trim();
-                    if (!fullUrl.endsWith('.html')) return null;
-                    const filename = fullUrl.split('/').pop();
-                    const titleRu = filenameToTitle(filename);
-                    return { url: filename, title: titleRu + ' — секс рассказ 18+' };
+                    const url = loc.textContent.trim();
+                    if (!url.endsWith('.html')) return null;
+                    const filename = url.split('/').pop();
+                    const niceTitle = filenameToTitle(filename);
+                    return { url: filename, title: niceTitle + ' — секс рассказ 18+' };
                 })
                 .filter(Boolean);
 
@@ -96,8 +93,7 @@
                 setInterval(showPage, 60000);
             }
         })
-        .catch(err => {
-            console.error(err);
+        .catch(() => {
             document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
         });
 
@@ -107,7 +103,7 @@
         const html = slice.map(item => `<a href="${item.url}">${item.title}</a>`).join('');
         container.style.opacity = '0';
         setTimeout(() => {
-            container.innerHTML = html;
+            container.innerHTML = html || '<div class="loader">Нет данных</div>';
             container.style.opacity = '1';
         }, 300);
         currentIndex = (currentIndex + PER_PAGE) % allUrls.length;
