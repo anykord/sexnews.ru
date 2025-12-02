@@ -48,66 +48,32 @@
     let allUrls = [];
     let currentIndex = 0;
 
-    // ТОЧНЫЙ словарь под твою генерацию (латинская кириллица → русский)
-    const dict = {
-        // Частые глаголы и прилагательные
-        'soglasilas':'согласилась','soglasilsya':'согласился','soglasilas':'согласилась',
-        'khudye':'худые','khudaya':'худая','khudoy':'худой',
-        'noshu':'ношу','nosila':'носила','nosit':'носит',
-        'shkolnitsa':'школьница','shkolnitsy':'школьницы','shkolnica':'школьница',
-        'shkolnik':'школьник','shkolniki':'школьники',
-        'studentka':'студентка','studentki':'студентки',
-        'podchinenie':'подчинение','podchinilas':'подчинилась',
-        'bolshoy':'большой','bolshaya':'большая','bolshuyu':'большую',
-        'malenkaya':'маленькая','malenkiy':'маленький',
-        'molodaya':'молодая','molodoy':'молодой',
-        'zrelaya':'зрелая','zrelye':'зрелые','zrelka':'зрелка',
-        'vstrecha':'встреча','vstretil':'встретил','vstretila':'встретила',
-        'vpervye':'впервые','vpervye':'впервые',
-        'konchil':'кончил','konchila':'кончила','konchaet':'кончает',
-        'vstavil':'вставил','vvel':'ввёл','vvela':'ввела',
-        'trahnul':'трахнул','trakhala':'трахала','trakhayet':'трахает',
-        'ebal':'ебал','ebala':'ебала','ebut':'ебут',
-        'sosala':'сосала','sosal':'сосал','soset':'сосёт',
-        'lizala':'лизала','lizal':'лизал','lizhet':'лижет',
-        'druzyami':'друзьями','sdruz':'с друзьями','druzey':'друзей',
-        'rabote':'работе','na rabote':'на работе','ofise':'офисе',
-        'plyazhe':'пляже','na plyazhe':'на пляже',
-        'saune':'сауне','v saune':'в сауне','bane':'бане',
-        'vlagalishche':'влагалище','pizdu':'пизду','pizda':'пизда',
-        'popku':'попку','popka':'попка','popoy':'попой',
-        'chlen':'член','khuy':'хуй','khuya':'хуя',
-        'spermu':'сперму','sperma':'сперма','konchil':'кончил',
-        'orgazm':'оргазм','konchayu':'кончаю',
-        'izmen':'измена','izmena':'измена','rogonosec':'рогоносец',
-        'troye':'втроём','vtroyem':'втроём','troe':'втроём',
-        'svidanie':'свидание','znakomstvo':'знакомство',
-        // Основные слова
-        'seks':'секс','rasskaz':'рассказ','rasskazy':'рассказы','porno':'порно',
-        'anal':'анал','anala':'анала','analom':'аналом','analnyy':'анальный',
-        'zhena':'жена','zhenoy':'женой','zhenu':'жену',
-        'gruppa':'группа','gruppovoy':'групповой','grupovukha':'групповуха',
-        'pervyy':'первый','pervy':'первый','pervogo':'первого',
-        'incest':'инцест','intsest':'инцест',
-        'zoo':'зоо','best':'бест','zoofil':'зоофил',
-        'kuni':'куни','kunilingus':'кунилингус',
-        'minet':'минет','minetchica':'минетчица',
-        'lesbi':'лесби','lesbiyanki':'лесбиянки',
-        'gey':'гей','gay':'гей',
-        'afrikancy':'африканцы','negr':'негр','bbc':'негры',
-        'svngeri':'свингеры','svng':'свинг',
-        'bdsm':'БДСМ','domina':'доминирование',
-        'sestra':'сестра','sestru':'сестру','sestroy':'сестрой',
-        'mama':'мама','mamka':'мамка','mat':'мать',
-        'techa':'тёща','tescha':'тёща'
+    // ТОЧНЫЙ обратный транслит по твоему алгоритму (кириллица ← латиница)
+    const reverseTranslitMap = {
+        'a':'а','b':'б','v':'в','g':'г','d':'д','e':'е','yo':'ё','zh':'ж','z':'з','i':'и','y':'й','k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','r':'р','s':'с','t':'т','u':'у','f':'ф','kh':'х','ts':'ц','ch':'ч','sh':'ш','sch':'щ','':'ъ','y':'ы','':'ь','e':'э','yu':'ю','ya':'я'
     };
 
-    function latinToRussian(text) {
-        return text.toLowerCase()
-            .split(/[\s_-]+/)
-            .map(word => dict[word] || word)
-            .join(' ')
-            .replace(/\b\w/g, l => l.toUpperCase());
+    function latinToCyrillic(str) {
+        str = str.toLowerCase();
+        // Сначала длинные комбинации (чтобы yo, zh и т.д. не разбивались)
+        const longFirst = ['yo','zh','kh','ts','ch','sh','sch','yu','ya'];
+        for (const lat of longFirst) {
+            str = str.split(lat).join(reverseTranslitMap[lat]);
+        }
+        // Потом одиночные буквы
+        return str.split('').map(c => reverseTranslitMap[c] || c).join('');
+    }
+
+    function filenameToTitle(filename) {
+        // Убираем .html и разбиваем по дефисам
+        const words = filename.replace('.html', '').split('-');
+        // Каждое слово → кириллица
+        const cyrillicWords = words.map(word => {
+            const cyr = latinToCyrillic(word);
+            // Делаем первую букву заглавной
+            return cyr.charAt(0).toUpperCase() + cyr.slice(1);
+        });
+        return cyrillicWords.join(' ');
     }
 
     fetch('/sitemap.xml?t=' + Date.now())
@@ -116,11 +82,11 @@
         .then(data => {
             allUrls = Array.from(data.querySelectorAll("url loc"))
                 .map(loc => {
-                    const url = loc.textContent.trim();
-                    if (!url.endsWith('.html')) return null;
-                    const filename = url.split('/').pop().replace('.html', '');
-                    const titleRu = latinToRussian(filename);
-                    return { url: url.split('/').pop(), title: titleRu + ' — секс рассказ 18+' };
+                    const fullUrl = loc.textContent.trim();
+                    if (!fullUrl.endsWith('.html')) return null;
+                    const filename = fullUrl.split('/').pop();
+                    const titleRu = filenameToTitle(filename);
+                    return { url: filename, title: titleRu + ' — секс рассказ 18+' };
                 })
                 .filter(Boolean);
 
@@ -130,7 +96,8 @@
                 setInterval(showPage, 60000);
             }
         })
-        .catch(() => {
+        .catch(err => {
+            console.error(err);
             document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
         });
 
