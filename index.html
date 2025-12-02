@@ -19,28 +19,23 @@
         .stories-grid a{display:block;margin:15px 0;padding:18px 22px;background:#fafafa;border:1px solid #eee;border-radius:12px;text-decoration:none;color:#222;font-size:19.5px;transition:all .25s}
         .stories-grid a:hover{background:#fef5f5;border-color:#e74c3c;color:#c0392b}
         .loader{text-align:center;margin:50px 0;font-size:19px;color:#999}
+        .fallback{text-align:center;margin:60px 0;color:#e74c3c;font-size:22px}
         @media(max-width:768px){
             h1{font-size:28px}
             .intro{font-size:18px}
             .stories-grid a{font-size:18.5px;padding:16px 18px}
         }
     </style>
-
-    <link rel="preload" href="/css/style.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="/css/style.css"></noscript>
 </head>
 <body>
     <?php @include($_SERVER['DOCUMENT_ROOT'].'/adv-top.php'); ?>
 
     <div class="wrapper">
-
         <h1>Секс рассказы 2025-2026 — читать онлайн бесплатно 18+</h1>
 
         <div class="intro">
             <p>Добро пожаловать на <strong>sexnews.ru</strong> — крупнейший русскоязычный архив <strong>секс рассказов</strong>, <strong>порно рассказов</strong> и <strong>эротических историй</strong> 2025-2026 года!</p>
-
             <p>У нас вы найдёте тысячи реальных и выдуманных <strong>секс рассказов 18+</strong> на любой вкус: <strong>измена жены</strong>, <strong>групповой секс</strong>, <strong>первый анал</strong>, <strong>инцест</strong>, <strong>зоо</strong>, <strong>куни и минет</strong>, <strong>лесбиянки</strong>, <strong>геи</strong>, <strong>секс с африканцами</strong>, <strong>свингеры</strong>, <strong>БДСМ</strong>, <strong>секс втроём</strong>, <strong>анал с сестрой</strong>, <strong>секс на пляже</strong>, <strong>секс в сауне</strong>, <strong>секс с тещей</strong> и сотни других тематик.</p>
-
             <p>Все <strong>порно рассказы</strong> и <strong>эротические истории</strong> доступны <strong>бесплатно</strong>, без регистрации и смс. Читайте анонимно с телефона, планшета или компьютера в любое время суток. Обновления каждый день — только самые свежие и горячие <strong>секс рассказы 2025-2026 года</strong>!</p>
         </div>
 
@@ -56,40 +51,50 @@
                 Ещё больше секс рассказов 18+ →
             </a>
         </div>
-
     </div>
 
 <script>
+    const PER_PAGE = 40;
     let allUrls = [];
     let currentIndex = 0;
-    const PER_PAGE = 40;
 
-    fetch('/sitemap.xml')
-        .then(r => r.text())
-        .then(str => new DOMParser().parseFromString(str, "text/xml"))
-        .then(data => {
-            const urls = data.querySelectorAll("url loc");
-            allUrls = Array.from(urls)
-                .map(loc => {
-                    const url = loc.textContent.trim();
-                    if (!url.endsWith('.html') || url.includes('/pages/')) return null;
-                    const clean = url
-                        .replace(/^https?:\/\/(www\.)?sexnews\.ru\//, '')
-                        .replace(/\.html$/, '')
-                        .replace(/-/g, ' ')
-                        .replace(/\b\w/g, c => c.toUpperCase());
-                    return { url, title: clean + ' — секс рассказ 18+' };
-                })
-                .filter(Boolean);
+    // Пробуем три возможных пути — один точно сработает на Vercel/Netlify/Cloudflare
+    const sitemapPaths = [
+        '/sitemap.xml',
+        '/public/sitemap.xml',
+        'sitemap.xml'
+    ];
 
-            // Рандомизируем порядок
-            allUrls = allUrls.sort(() => Math.random() - 0.5);
-            showPage();
-            setInterval(showPage, 60000);
-        })
-        .catch(() => {
-            document.getElementById('stories-container').innerHTML = '<p style="text-align:center;color:#999">Временно недоступно. Попробуйте позже.</p>';
-        });
+    function loadSitemap(path) {
+        return fetch(path + '?t=' + Date.now())  // ломаем кэш
+            .then(r => r.text())
+            .then(str => new DOMParser().parseFromString(str, "text/xml"))
+            .then(data => {
+                const locs = data.querySelectorAll("url loc");
+                allUrls = Array.from(locs)
+                    .map(loc => {
+                        let url = loc.textContent.trim();
+                        if (!url.endsWith('.html') || url.includes('/pages/')) return null;
+                        const clean = url
+                            .replace(/^https?:\/\/[^\/]+/i, '')
+                            .replace(/^\//, '')
+                            .replace(/\.html$/, '')
+                            .replace(/-/g, ' ')
+                            .replace(/\b\w/g, c => c.toUpperCase());
+                        return { url: '/' + clean.replace(/ /g, '-').toLowerCase() + '.html', title: clean + ' — секс рассказ 18+' };
+                    })
+                    .filter(Boolean);
+
+                if (allUrls.length > 0) {
+                    allUrls = allUrls.sort(() => Math.random() - 0.5);
+                    showPage();
+                    setInterval(showPage, 60000);
+                } else {
+                    showFallback();
+                }
+            })
+            .catch(() => false);
+    }
 
     function showPage() {
         const container = document.getElementById('stories-container');
@@ -99,11 +104,7 @@
             slice = allUrls.slice(0, PER_PAGE);
         }
 
-        let html = '';
-        slice.forEach(item => {
-            html += `<a href="${item.url}">${item.title}</a>`;
-        });
-
+        let html = slice.map(item => `<a href="${item.url}">${item.title}</a>`).join('');
         container.style.opacity = '0';
         setTimeout(() => {
             container.innerHTML = html || '<div class="loader">Готовим новые секс рассказы...</div>';
@@ -113,6 +114,25 @@
         currentIndex += PER_PAGE;
         if (currentIndex >= allUrls.length) currentIndex = 0;
     }
+
+    function showFallback() {
+        document.getElementById('stories-container').innerHTML = `
+            <div class="fallback">
+                Список рассказов временно недоступен<br><br>
+                <a href="/pages/" style="color:#e74c3c;font-size:22px;text-decoration:underline">
+                    Перейти в полный архив всех секс рассказов →
+                </a>
+            </div>`;
+    }
+
+    // Пробуем все пути по очереди
+    (async () => {
+        for (const path of sitemapPaths) {
+            const success = await loadSitemap(path);
+            if (success) break;
+        }
+        if (allUrls.length === 0) showFallback();
+    })();
 </script>
 
 </body>
