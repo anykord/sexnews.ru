@@ -46,79 +46,84 @@
 <script>
     const PER_PAGE = 40;
     let allUrls = [];
-    let currentIndex = 0;
 
-    // ТОЧНЫЙ обратный транслит — 1 в 1 как в твоём Python-скрипте
-    const reverseMap = {
-        'a':'а','b':'б','v':'в','g':'г','d':'д','e':'е','yo':'ё','zh':'ж','z':'з',
-        'i':'и','y':'й',  // ← ВОТ ГЛАВНОЕ ИСПРАВЛЕНИЕ: y → й (а не ы!)
-        'k':'к','l':'л','m':'м','n':'н','o':'о','p':'п','r':'р','s':'с','t':'т',
-       rn 'u':'у','f':'ф','kh':'х','ts':'ц','ch':'ч','sh':'ш','sch':'щ',
-        '':'ъ','y':'ы',  // ← только если y стоит после гласной — но мы уже обработали выше как й
-        '':'ь','e':'э','yu':'ю','ya':'я'
-    };
-
-    // Правильная замена: сначала длинные, потом короткие
+    // Точный обратный транслит (по твоему Python-алгоритму)
     function latinToCyrillic(str) {
         str = str.toLowerCase();
-        const pairs = ['yo','zh','kh','ts','ch','sh','sch','yu','ya'];
-        for (const p of pairs) {
-            str = str.split(p).join(reverseMap[p]);
+        const map = {
+            'yo':'ё','zh':'ж','kh':'х','ts':'ц','ch':'ч','sh':'ш','sch':'щ','yu':'ю','ya':'я',
+            'a':'а','b':'б','v':'в','g':'г','d':'д','e':'е','z':'з','i':'и','j':'й','k':'к',
+            'l':'л','m':'м','n':'н','o':'о','p':'п','r':'р','s':'с','t':'т','u':'у','f':'ф','y':'ы','h':'х'
+        };
+        // Сначала длинные
+        for (const key in map) if (key.length > 1) str = str.split(key).join(map[key]);
+        // Потом одиночные + y → й везде (в твоём генераторе «й» → «y»)
+        str = str.split('').map(c => map[c] || c).join('');
+        return str.replace(/y/g, 'й'); // все оставшиеся y → й
+    }
+
+    function filenameToTitle(fn) {
+        return fn.replace(/\.html$/i,'').split('-').map(w => {
+            const c = latinToCyrillic(w);
+            return c.charAt(0).toUpperCase() + c.slice(1);
+        }).join(' ');
+    }
+
+    // Пробуем три пути — один точно сработает на Vercel
+    const paths = ['/sitemap.xml', '/public/sitemap.xml', '/sitemap.xml?t=' + Date.now()];
+    let tried = 0;
+
+    function loadSitemap() {
+        if (tried >= paths.length) {
+            document.getElementById('stories-container').innerHTML = '<div class="fallback">Список временно недоступен<br><a href="/pages/">→ Полный архив здесь</a></div>';
+            return;
         }
-        // Обрабатываем "y" как "й" только если это не часть "ы" (в твоём генераторе "ы" → "y" только в конце или после гласной)
-        // Но в твоём алгоритме "й" → "y", а "ы" → "y" — поэтому мы просто всегда делаем y → й
-        // (в реальных словах "ы" не бывает в латинском написании, только "y" от "й")
-        str = str.replace(/y/g, 'й');  // ← Главная строчка! Все y → й
-        str = str.replace(/yy/g, 'ый'); // на случай "мой" → "moyy" → "мой"
-        
-        // Остальные одиночные буквы
-        return str.split('').map(c => reverseMap[c] || c).join('');
-    }
-
-    function filenameToTitle(filename) {
-        return filename
-            .replace(/\.html$/i, '')
-            .split('-')
-            .map(word => {
-                const cyr = latinToCyrillic(word);
-                return cyr.charAt(0).toUpperCase() + cyr.slice(1);
+        console.log('Пробуем путь:', paths[tried]);
+        fetch(paths[tried] + (paths[tried].includes('?') ? '' : '?t=' + Date.now()))
+            .then(r => {
+                if (!r.ok) throw new Error('Не 200');
+                return r.text();
             })
-            .join(' ');
-    }
+            .then(text => {
+                console.log('Sitemap загружен, размер:', text.length);
+                const xml = new DOMParser().parseFromString(text, "text/xml");
+                const locs = xml.querySelectorAll("loc");
+                console.log('Найдено URL в sitemap:', locs.length);
 
-    fetch('/sitemap.xml?t=' + Date.now())
-        .then(r => r.ok ? r.text() : Promise.reject())
-        .then(text => {
-            const xml = new DOMParser().parseFromString(text, "text/xml");
-            allUrls = Array.from(xml.querySelectorAll("loc"))
-                .map(loc => {
+                allUrls = Array.from(locs).map(loc => {
                     const url = loc.textContent.trim();
                     if (!url.endsWith('.html')) return null;
-                    const filename = url.split('/').pop();
-                    const title = filenameToTitle(filename);
-                    return { url: filename, title: title + ' — секс рассказ 18+' };
-                })
-                .filter(Boolean);
+                    const fn = url.split('/').pop();
+                    return {url: fn, title: filenameToTitle(fn) + ' — секс рассказ 18+'};
+                }).filter(Boolean);
 
-            allUrls.sort(() => Math.random() - 0.5);
-            showPage();
-            setInterval(showPage, 60000);
-        })
-        .catch(() => {
-            document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
-        });
+                console.log('Готовых ссылок:', allUrls.length);
+                if (allUrls.length === 0) throw new Error('Нет .html');
+
+                allUrls.sort(() => Math.random() - 0.5);
+                showPage();
+                setInterval(showPage, 60000);
+            })
+            .catch(err => {
+                console.error('Ошибка с путем', paths[tried], err);
+                tried++;
+                loadSitemap();
+            });
+    }
 
     function showPage() {
         const container = document.getElementById('stories-container');
-        const slice = allUrls.slice(currentIndex, currentIndex + PER_PAGE);
-        const html = slice.map(item => `<a href="${item.url}">${item.title}</a>`).join('');
+        const slice = allUrls.slice(0, PER_PAGE);
+        const html = slice.map(i => `<a href="${i.url}">${i.title}</a>`).join('');
         container.style.opacity = '0';
         setTimeout(() => {
             container.innerHTML = html;
             container.style.opacity = '1';
         }, 300);
-        currentIndex = (currentIndex + PER_PAGE) % allUrls.length;
+        allUrls.push(...allUrls.splice(0, PER_PAGE)); // крутим
     }
+
+    loadSitemap();
 </script>
 </body>
 </html>
