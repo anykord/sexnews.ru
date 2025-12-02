@@ -7,7 +7,7 @@
     <title>Секс рассказы 2025-2026 — читать онлайн бесплатно 18+ | sexnews.ru</title>
     <meta name="description" content="Самые горячие секс рассказы 2025-2026 года без регистрации: измена жены, групповой секс, первый анал, инцест, зоо, африканцы, куни, минет и сотни других тем. Бесплатно и анонимно!">
     <style>
-        body{margin:0;padding:0;background:#fff;color:#222;font-family:-apple url,System,sans-serif;line-height:1.8;font-size:18px}
+        body{margin:0;padding:0;background:#fff;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.8;font-size:18px}
         .wrapper{max-width:860px;margin:0 auto;padding:15px}
         h1{font-size:34px;margin:30px 0 20px;text-align:center;color:#c0392b;line-height:1.3}
         h2{font-size:26px;margin:45px 0 20px;text-align:center;color:#e74c3c}
@@ -48,43 +48,62 @@
     let allUrls = [];
     let currentIndex = 0;
 
-    // Полный словарь транслит → русский (расширен до максимума)
+    // ТОЧНЫЙ словарь под твою генерацию (латинская кириллица → русский)
     const dict = {
-        'seks':'секс','rasskaz':'рассказ','rasskazy':'рассказы','porno':'порно','eroticheskie':'эротические',
-        'anal':'анал','anala':'анала','analom':'аналом','analnogo':'анального','anale':'анале','analnyy':'анальный',
-        'zhena':'жена','zhenoy':'женой','zhenu':'жену','zhena':'жена','zhen':'жен',
-        'gruppa':'группа','gruppovoy':'групповой','grupovoy':'групповой','grupovukha':'групповуха',
-        'pervyy':'первый','pervy':'первый','pervogo':'первого','pervaya':'первая',
+        // Частые глаголы и прилагательные
+        'soglasilas':'согласилась','soglasilsya':'согласился','soglasilas':'согласилась',
+        'khudye':'худые','khudaya':'худая','khudoy':'худой',
+        'noshu':'ношу','nosila':'носила','nosit':'носит',
+        'shkolnitsa':'школьница','shkolnitsy':'школьницы','shkolnica':'школьница',
+        'shkolnik':'школьник','shkolniki':'школьники',
+        'studentka':'студентка','studentki':'студентки',
+        'podchinenie':'подчинение','podchinilas':'подчинилась',
+        'bolshoy':'большой','bolshaya':'большая','bolshuyu':'большую',
+        'malenkaya':'маленькая','malenkiy':'маленький',
+        'molodaya':'молодая','molodoy':'молодой',
+        'zrelaya':'зрелая','zrelye':'зрелые','zrelka':'зрелка',
+        'vstrecha':'встреча','vstretil':'встретил','vstretila':'встретила',
+        'vpervye':'впервые','vpervye':'впервые',
+        'konchil':'кончил','konchila':'кончила','konchaet':'кончает',
+        'vstavil':'вставил','vvel':'ввёл','vvela':'ввела',
+        'trahnul':'трахнул','trakhala':'трахала','trakhayet':'трахает',
+        'ebal':'ебал','ebala':'ебала','ebut':'ебут',
+        'sosala':'сосала','sosal':'сосал','soset':'сосёт',
+        'lizala':'лизала','lizal':'лизал','lizhet':'лижет',
+        'druzyami':'друзьями','sdruz':'с друзьями','druzey':'друзей',
+        'rabote':'работе','na rabote':'на работе','ofise':'офисе',
+        'plyazhe':'пляже','na plyazhe':'на пляже',
+        'saune':'сауне','v saune':'в сауне','bane':'бане',
+        'vlagalishche':'влагалище','pizdu':'пизду','pizda':'пизда',
+        'popku':'попку','popka':'попка','popoy':'попой',
+        'chlen':'член','khuy':'хуй','khuya':'хуя',
+        'spermu':'сперму','sperma':'сперма','konchil':'кончил',
+        'orgazm':'оргазм','konchayu':'кончаю',
+        'izmen':'измена','izmena':'измена','rogonosec':'рогоносец',
+        'troye':'втроём','vtroyem':'втроём','troe':'втроём',
+        'svidanie':'свидание','znakomstvo':'знакомство',
+        // Основные слова
+        'seks':'секс','rasskaz':'рассказ','rasskazy':'рассказы','porno':'порно',
+        'anal':'анал','anala':'анала','analom':'аналом','analnyy':'анальный',
+        'zhena':'жена','zhenoy':'женой','zhenu':'жену',
+        'gruppa':'группа','gruppovoy':'групповой','grupovukha':'групповуха',
+        'pervyy':'первый','pervy':'первый','pervogo':'первого',
         'incest':'инцест','intsest':'инцест',
-        'zoo':'зоо','best':'бест','zoofil':'зоофил','zoofilia':'зоофилия',
-        'kuni':'куни','kunilingus':'кунилингус','kuni':'куни',
-        'minet':'минет','mineta':'минета','minetchica':'минетчица',
-        'lesbi':'лесби','lesbiyan':'лесбиянки','lesbiyanki':'лесбиянки',
+        'zoo':'зоо','best':'бест','zoofil':'зоофил',
+        'kuni':'куни','kunilingus':'кунилингус',
+        'minet':'минет','minetchica':'минетчица',
+        'lesbi':'лесби','lesbiyanki':'лесбиянки',
         'gey':'гей','gay':'гей',
-        'afrikancy':'африканцы','negr':'негр','negrov':'негров','bbc':'негры',
-        'svng':'свинг','svngeri':'свингеры','svngers':'свингеры',
-        'bdsm':'БДСМ','domina':'доминирование','podchinenie':'подчинение',
-        'sestra':'сестра','sestru':'сестру','sestroy':'сестрой','sestry':'сестры',
-        'mama':'мама','mamka':'мамка','mamochka':'мамочка','mat':'мать',
-        'techa':'тёща','tescha':'тёща','teshcha':'тёща',
-        'detskiy':'детский','malchik':'мальчик','devochka':'девочка','deti':'дети','detyam':'детям',
-        'zrelka':'зрелка','zrelye':'зрелые','zrelaya':'зрелая',
-        'druz':'друз','druziya':'друзья','sdruz':'с друзьями','druzey':'друзей',
-        'rabote':'работе','na rabote':'на работе','ofise':'офисе','ofisnyy':'офисный',
-        'plyazhe':'пляже','na plyazhe':'на пляже','plyazhnyy':'пляжный',
-        'saune':'сауне','v saune':'в сауне','bane':'бане','v bane':'в бане',
-        'vlagalishche':'влагалище','pizda':'пизда','pizdy':'пизды','pisyu':'писю',
-        'chlen':'член','hui':'хуй','huy':'хуй','dildo':'дилдо','vibrator':'вибратор',
-        'orgazm':'оргазм','konchil':'кончил','konchaet':'кончает','sperma':'сперма',
-        'izmen':'измен','izmena':'измена','izmenil':'изменил','rogonosec':'рогоносец',
-        'troye':'втроём','troe':'втроём','vtroem':'втроём',
-        'svidanie':'свидание','znakomstvo':'знакомство','seks-vtroem':'секс втроём'
+        'afrikancy':'африканцы','negr':'негр','bbc':'негры',
+        'svngeri':'свингеры','svng':'свинг',
+        'bdsm':'БДСМ','domina':'доминирование',
+        'sestra':'сестра','sestru':'сестру','sestroy':'сестрой',
+        'mama':'мама','mamka':'мамка','mat':'мать',
+        'techa':'тёща','tescha':'тёща'
     };
 
-    // Универсальная функция транслит → русский
-    function toRussian(text) {
+    function latinToRussian(text) {
         return text.toLowerCase()
-            .replace(/[^a-zа-яё0-9\s-]/gi, ' ')
             .split(/[\s_-]+/)
             .map(word => dict[word] || word)
             .join(' ')
@@ -100,7 +119,7 @@
                     const url = loc.textContent.trim();
                     if (!url.endsWith('.html')) return null;
                     const filename = url.split('/').pop().replace('.html', '');
-                    const titleRu = toRussian(filename);
+                    const titleRu = latinToRussian(filename);
                     return { url: url.split('/').pop(), title: titleRu + ' — секс рассказ 18+' };
                 })
                 .filter(Boolean);
