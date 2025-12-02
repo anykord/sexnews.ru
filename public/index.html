@@ -48,52 +48,60 @@
     let allUrls = [];
     let currentIndex = 0;
 
-    // Пробуем несколько путей к sitemap
-    const paths = ['/sitemap.xml', '/public/sitemap.xml', 'sitemap.xml'];
+    // Словарь транслита → русский (самые частые слова в adult-тематике)
+    const translitMap = {
+        'seks': 'секс', 'rasskaz': 'рассказ', 'rasskazy': 'рассказы', 'porno': 'порно',
+        'anal': 'анал', 'analnogo': 'анального', 'anala': 'анала', 'analom': 'аналом',
+        'zhena': 'жена', 'zhenoy': 'женой', 'zhenu': 'жену', 'zhena': 'жена',
+        'gruppa': 'группа', 'gruppovoy': 'групповой', 'gruppovoy': 'групповой',
+        'pervy': 'первый', 'pervogo': 'первого', 'pervyy': 'первый',
+        'incest': 'инцест', 'incesta': 'инцеста',
+        'zoo': 'зоо', 'best': 'бест', 'zoofil': 'зоофил',
+        'kunilingus': 'кунилингус', 'kuni': 'куни',
+        'minet': 'минет', 'mineta': 'минета',
+        'lesbi': 'лесби', 'lesbiyan': 'лесбиянки',
+        'gey': 'гей', 'gay': 'гей',
+        'afrikancy': 'африканцы', 'negr': 'негр', 'negrov': 'негров',
+        'svngeri': 'свингеры', 'svng': 'свинг',
+        'bdsm': 'БДСМ', 'bdsm': 'БДСМ',
+        'sestra': 'сестра', 'sestru': 'сестру',
+        'techa': 'тёща', 'teshcha': 'тёща',
+        'vagina': 'вагина', 'pizda': 'пизда', 'pisya': 'пися',
+        'chlen': 'член', 'hui': 'хуй', 'huy': 'хуй',
+        'orgazm': 'оргазм', 'konchil': 'кончил', 'konchaet': 'кончает'
+    };
 
-    async function loadSitemap() {
-        for (let path of paths) {
-            try {
-                console.log('Пробуем загрузить sitemap по пути:', path);
-                const response = await fetch(path + '?t=' + Date.now());
-                if (!response.ok) throw new Error('Не 200');
-                const text = await response.text();
-                console.log('Sitemap загружен:', text.length + ' символов');
-                const parser = new DOMParser();
-                const xml = parser.parseFromString(text, 'text/xml');
-                const locs = xml.querySelectorAll('loc');
-                console.log('Найдено loc элементов:', locs.length);
-                
-                allUrls = Array.from(locs).map(loc => {
-                    let url = loc.textContent.trim();
-                    console.log('Обрабатываем URL:', url);
-                    if (!url.endsWith('.html')) return null;
-                    // Извлекаем имя файла (последний сегмент)
-                    const filename = url.split('/').pop();
-                    if (!filename) return null;
-                    const cleanTitle = filename
-                        .replace('.html', '')
-                        .replace(/-/g, ' ')
-                        .replace(/\b\w/g, l => l.toUpperCase());
-                    const fullUrl = url.includes('/pages/') ? url : '/pages/' + filename; // Если нет /pages/, добавляем
-                    console.log('Готовый URL и title:', fullUrl, cleanTitle);
-                    return { url: fullUrl, title: cleanTitle + ' — секс рассказ 18+' };
-                }).filter(Boolean);
-
-                console.log('Финальное количество URL:', allUrls.length);
-                if (allUrls.length > 0) {
-                    allUrls.sort(() => Math.random() - 0.5);
-                    showPage();
-                    setInterval(showPage, 60000);
-                    return true;
-                }
-                throw new Error('Нет HTML-страниц');
-            } catch (e) {
-                console.error('Ошибка с путем ' + path + ':', e);
-            }
-        }
-        throw new Error('Все пути провалены');
+    function translitToRussian(str) {
+        return str.toLowerCase()
+            .split(/[_\-\s]+/)
+            .map(word => translitMap[word] || word)
+            .join(' ')
+            .replace(/\b\w/g, l => l.toUpperCase());
     }
+
+    fetch('/sitemap.xml?t=' + Date.now())
+        .then(r => r.text())
+        .then(str => new DOMParser().parseFromString(str, "text/xml"))
+        .then(data => {
+            allUrls = Array.from(data.querySelectorAll("url loc"))
+                .map(loc => {
+                    const url = loc.textContent.trim();
+                    if (!url.endsWith('.html')) return null;
+                    const filename = url.split('/').pop().replace('.html', '');
+                    const titleRu = translitToRussian(filename);
+                    return { url: url.split('/').pop(), title: titleRu + ' — секс рассказ 18+' };
+                })
+                .filter(Boolean);
+
+            if (allUrls.length > 0) {
+                allUrls.sort(() => Math.random() - 0.5);
+                showPage();
+                setInterval(showPage, 60000);
+            }
+        })
+        .catch(() => {
+            document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
+        });
 
     function showPage() {
         const container = document.getElementById('stories-container');
@@ -101,16 +109,11 @@
         const html = slice.map(item => `<a href="${item.url}">${item.title}</a>`).join('');
         container.style.opacity = '0';
         setTimeout(() => {
-            container.innerHTML = html || '<div class="loader">Нет историй для показа</div>';
+            container.innerHTML = html;
             container.style.opacity = '1';
         }, 300);
         currentIndex = (currentIndex + PER_PAGE) % allUrls.length;
     }
-
-    loadSitemap().catch(() => {
-        console.error('Sitemap не загружен');
-        document.getElementById('stories-container').innerHTML = '<div class="fallback">Архив временно недоступен<br><a href="/pages/">→ Все рассказы здесь</a></div>';
-    });
 </script>
 </body>
 </html>
