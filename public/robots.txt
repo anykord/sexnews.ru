@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /cgi-bin
-Disallow: /admin
-Sitemap: https://sexnews.ru/sitemap.xml
-Host: https://sexnews.ru
